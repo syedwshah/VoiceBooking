@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from sqlalchemy import ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -13,6 +13,9 @@ try:  # pragma: no cover - optional Postgres optimization
     from sqlalchemy.dialects.postgresql import JSONB as JSONType  # type: ignore
 except ImportError:  # pragma: no cover
     JSONType = JSON  # type: ignore
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .booking import Booking
 
 
 class Venue(Base):
@@ -29,6 +32,10 @@ class Venue(Base):
     rooms: Mapped[List["Room"]] = relationship(
         back_populates="venue",
         cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    bookings: Mapped[List["Booking"]] = relationship(
+        back_populates="venue",
         lazy="selectin",
     )
 
@@ -56,6 +63,11 @@ class Room(Base):
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now(), nullable=False)
 
     venue: Mapped[Venue] = relationship(back_populates="rooms", lazy="joined")
+    bookings: Mapped[List["Booking"]] = relationship(
+        "Booking",
+        back_populates="room",
+        lazy="selectin",
+    )
 
     def to_dict(self, include_venue: bool = True) -> Dict[str, Any]:
         data: Dict[str, Any] = {

@@ -1,17 +1,22 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 from typing import Any
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from app.db.base import Base
-from app.models import *  # noqa: F401,F403
-from app.utils.config import get_settings
+BASE_DIR = Path(__file__).resolve().parents[1]
+sys.path.append(str(BASE_DIR))
+
+from app.db.base import Base  # noqa: E402
+from app.models import *  # noqa: E402,F401,F403
+from app.utils.config import get_settings  # noqa: E402
 
 config = context.config
 
@@ -50,22 +55,19 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-        future=True,
-    )
+    async def async_main() -> None:
+        connectable = create_async_engine(
+            config.get_main_option("sqlalchemy.url"),
+            poolclass=pool.NullPool,
+            future=True,
+        )
 
-    if isinstance(connectable, AsyncEngine):
-        async def async_run() -> None:
-            async with connectable.connect() as connection:
-                await connection.run_sync(do_run_migrations)
+        async with connectable.connect() as connection:
+            await connection.run_sync(do_run_migrations)
 
-        asyncio.run(async_run())
-    else:
-        with connectable.connect() as connection:
-            do_run_migrations(connection)
+        await connectable.dispose()
+
+    asyncio.run(async_main())
 
 
 if context.is_offline_mode():

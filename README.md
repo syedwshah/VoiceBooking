@@ -19,7 +19,8 @@ VoiceBooking/
 ### Backend Highlights
 - `/api/calls/launch` kicks off Vapi outreach or booking calls.
 - `/api/metadata/*` serves venue data and session summaries (backed by Postgres).
-- `/api/booking/*` manages booking confirmation and key issuance.
+- `/api/booking/{session_id}/confirm` persists a booking, records mock payment + door code, and updates the session snapshot.
+- `/api/booking/{booking_id}/door-code` regenerates access codes; `/api/booking/recent` lists the latest reservations for the owner dashboard.
 - `/api/events/{session}` exposes SSE stream for live status (stub).
 
 ### Frontend Highlights
@@ -63,9 +64,11 @@ VoiceBooking/
    alembic upgrade head
    ```
 
-5. **Seed venue data** (optional but handy for local testing)
+5. **Seed venue + sample bookings** (optional but handy for local testing)
    ```bash
-   python scripts/seed_data.py
+   cd backend
+   source .venv/bin/activate
+   PYTHONPATH=. python scripts/seed_data.py
    ```
 
 6. **Run the backend**
@@ -86,11 +89,31 @@ VoiceBooking/
 
 ## Next Steps
 
-- Connect the Vapi webhook handler to enrich transcripts and drive real summary generation via OpenAI Responses.
+- Connect the Vapi webhook handler to enrich transcripts, drive real summary generation, and stream booking/payment/door events back to the UI.
 - Wire up the OpenAI Realtime WebSocket bridge for the chat booking assistant.
 - Add authentication and persistence if you move beyond a single-user demo.
-- Replace the mock key issuance service with a real smart-lock integration or MCP payment gate.
-- Expand the schema/migrations to cover bookings, payments, and audit logs when you progress beyond the prototype.
+- Replace the mock key issuance + payment integrations with real services (smart locks, MCP payments) and expose invoices.
+- Expand the schema/migrations to cover additional booking lifecycle events (cancellations, refunds, audit logs) when you progress beyond the prototype.
+
+## Manual Test Checklist
+
+1. **Spin up the stack** using the steps above (Docker Postgres, migrations, seed, backend, frontend).
+2. **Launch an outreach call** from the dashboard to verify Vapi connectivity (mock updates currently streamed via SSE heartbeat).
+3. **Trigger a booking** by submitting the call brief in booking mode; inspect `GET /api/booking/recent` to confirm the booking, payment entry, and door access code were recorded.
+4. **Regenerate access**: call `POST /api/booking/{booking_id}/door-code` to ensure mock access codes rotate and the session store reflects the change.
+5. **Check seed data** via psql or the `/api/metadata/venues` endpoint to validate venue/room ingestion.
+
+## Team Setup Notes
+
+For teammates setting up locally:
+
+1. `git pull` the latest changes.
+2. Copy `.env.example` → `.env` and fill credentials (especially `DATABASE_URL` if Postgres runs elsewhere).
+3. In `infra/`, run `docker compose up -d` to start the Postgres container (`voicebooking` DB with `postgres/postgres`).
+4. In `backend/`, create/activate the virtualenv and install requirements.
+5. Run migrations with `alembic upgrade head` (ensure `.venv` is activated so env vars load).
+6. Seed reference data with `PYTHONPATH=. python scripts/seed_data.py` (optional but recommended for the demo flow).
+7. Start backend/front-end dev servers as needed.
 
 ## Tooling & Scripts
 
