@@ -30,10 +30,10 @@ class BookingSubmission(BaseModel):
 
 class AvailabilityRequest(BaseModel):
     session_id: str
-    venue_id: str
     start_time: datetime
     duration_minutes: int
     attendee_count: Optional[int] = None
+    notes: Optional[str] = None
 
 
 class AvailabilityResponseRoom(BaseModel):

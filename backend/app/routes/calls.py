@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
@@ -28,6 +30,7 @@ class CallLaunchResponse(BaseModel):
 
 
 router = APIRouter(prefix="/calls", tags=["calls"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/launch", response_model=CallLaunchResponse)
@@ -46,6 +49,16 @@ async def launch_call(
             call_type=brief.call_type,
             brief=brief.model_dump(),
         )
+    )
+
+    logger.info(
+        "session_event",
+        extra={
+            "session_id": brief.session_id,
+            "event": "call.launch",
+            "call_type": brief.call_type,
+            "target": brief.target_contact,
+        },
     )
 
     await vapi_service.launch_call(brief)
@@ -76,6 +89,15 @@ async def handle_vapi_webhook(
                 TranscriptEntry(role=speaker, content=text, timestamp=data.get("timestamp", 0.0)),
             )
             await event_bus.publish(session_id, {"type": "transcript", "speaker": speaker, "text": text})
+            logger.info(
+                "session_event",
+                extra={
+                    "session_id": session_id,
+                    "event": "transcript.append",
+                    "speaker": speaker,
+                    "text": text,
+                },
+            )
     elif event_type in {"call.started", "call.ringing", "call.completed", "call.failed"}:
         status_map = {
             "call.started": "in_progress",
@@ -84,6 +106,13 @@ async def handle_vapi_webhook(
             "call.failed": "failed",
         }
         await event_bus.publish(session_id, {"type": "status", "status": status_map[event_type]})
+        logger.info(
+            "session_event",
+            extra={
+                "session_id": session_id,
+                "event": event_type,
+            },
+        )
         record = session_store.get(session_id)
         if record:
             record.brief.setdefault("statuses", []).append(event_type)
