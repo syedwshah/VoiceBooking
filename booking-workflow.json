@@ -1,0 +1,510 @@
+{
+  "name": "Coworking Front Desk Booking",
+  "nodes": [
+    {
+      "name": "welcome_intake",
+      "type": "conversation",
+      "isStart": true,
+      "metadata": {
+        "position": {
+          "x": -26.455609387875768,
+          "y": -380.82672762024936
+        }
+      },
+      "prompt": "Greet the guest as the front desk concierge. Collect their first and last name, mobile phone, and email address. Confirm whether they want to book a coworking workstation today and ask for their preferred date, start time, expected duration, and any special requirements. Summarize the captured details back to the guest before proceeding.",
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "guest",
+            "booking"
+          ],
+          "properties": {
+            "guest": {
+              "type": "object",
+              "required": [
+                "firstName",
+                "lastName",
+                "phone",
+                "email"
+              ],
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "format": "email"
+                },
+                "phone": {
+                  "type": "string",
+                  "description": "E.164 or local phone number"
+                },
+                "lastName": {
+                  "type": "string"
+                },
+                "firstName": {
+                  "type": "string"
+                }
+              }
+            },
+            "booking": {
+              "type": "object",
+              "required": [
+                "wantsWorkstation"
+              ],
+              "properties": {
+                "specialNotes": {
+                  "type": "string"
+                },
+                "durationHours": {
+                  "type": "number"
+                },
+                "preferredDate": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "wantsWorkstation": {
+                  "type": "boolean"
+                },
+                "preferredStartTime": {
+                  "type": "string",
+                  "format": "time"
+                }
+              }
+            }
+          }
+        },
+        "aliases": [
+          {
+            "key": "guestFullName",
+            "value": "{{ guest.firstName }} {{ guest.lastName }}"
+          },
+          {
+            "key": "wantsWorkstation",
+            "value": "{{ booking.wantsWorkstation }}"
+          }
+        ]
+      },
+      "messagePlan": {
+        "firstMessage": "Hello, this is Coworking front desk, how can I help you today? "
+      },
+      "toolIds": []
+    },
+    {
+      "name": "availability_lookup",
+      "type": "tool",
+      "metadata": {
+        "position": {
+          "x": -475.2209799122785,
+          "y": 77.22151169889973
+        }
+      },
+      "tool": {
+        "url": "https://api.example.com/coworking/availability",
+        "body": {
+          "type": "object",
+          "required": [
+            "guest",
+            "preferences"
+          ],
+          "properties": {
+            "guest": {
+              "type": "object",
+              "required": [
+                "firstName",
+                "lastName",
+                "phone",
+                "email"
+              ],
+              "properties": {
+                "email": {
+                  "type": "string"
+                },
+                "phone": {
+                  "type": "string"
+                },
+                "lastName": {
+                  "type": "string"
+                },
+                "firstName": {
+                  "type": "string"
+                }
+              }
+            },
+            "preferences": {
+              "type": "object",
+              "required": [
+                "date",
+                "startTime",
+                "durationHours"
+              ],
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "notes": {
+                  "type": "string"
+                },
+                "startTime": {
+                  "type": "string",
+                  "format": "time"
+                },
+                "durationHours": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        "name": "check_availability",
+        "type": "apiRequest",
+        "method": "POST",
+        "headers": {
+          "type": "object",
+          "properties": {
+            "Content-Type": {
+              "enum": [
+                "application/json"
+              ],
+              "type": "string"
+            },
+            "Authorization": {
+              "type": "string",
+              "description": "Bearer token or other auth header"
+            }
+          }
+        },
+        "description": "Look up coworking workstation availability that matches the guest request.",
+        "variableExtractionPlan": {
+          "schema": {
+            "type": "object",
+            "required": [
+              "availableSlots"
+            ],
+            "properties": {
+              "availableSlots": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "slotId",
+                    "start",
+                    "end"
+                  ],
+                  "properties": {
+                    "end": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "room": {
+                      "type": "string"
+                    },
+                    "notes": {
+                      "type": "string"
+                    },
+                    "price": {
+                      "type": "number"
+                    },
+                    "start": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "slotId": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "title": "availableSlots"
+              },
+              "backendMessage": {
+                "type": "string"
+              }
+            }
+          },
+          "aliases": [
+            {
+              "key": "slotsCount",
+              "value": "{{ availableSlots | size }}"
+            },
+            {
+              "key": "availabilityMessage",
+              "value": "{{ backendMessage }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "slot_selection",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": -464.89009165012493,
+          "y": 551.0134531538503
+        }
+      },
+      "prompt": "Review the available workstation slots with the guest, highlighting how each option matches their requested time. If no slots are available, offer to adjust the search. When the guest picks one, confirm the exact start/end time, room, price, and any special requests that must be honored. Let them know payment will be handled securely next.",
+      "variableExtractionPlan": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "selectedSlot"
+          ],
+          "properties": {
+            "selectedSlot": {
+              "type": "object",
+              "required": [
+                "slotId",
+                "confirm"
+              ],
+              "properties": {
+                "notes": {
+                  "type": "string"
+                },
+                "slotId": {
+                  "type": "string"
+                },
+                "confirm": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "aliases": [
+          {
+            "key": "bookingConfirmed",
+            "value": "{{ selectedSlot.confirm }}"
+          }
+        ]
+      }
+    },
+    {
+      "name": "apple_pay_authorization",
+      "type": "tool",
+      "metadata": {
+        "position": {
+          "x": -462.5310738286755,
+          "y": 974.3649184772795
+        }
+      },
+      "tool": {
+        "type": "mcp",
+        "server": {
+          "url": "https://payments.example.com/mcp/apple-pay",
+          "headers": {
+            "Authorization": "Bearer YOUR_MCP_TOKEN"
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start"
+          },
+          {
+            "type": "request-complete"
+          },
+          {
+            "type": "request-failed"
+          }
+        ]
+      }
+    },
+    {
+      "name": "door_access",
+      "type": "tool",
+      "metadata": {
+        "position": {
+          "x": -461.81826799381236,
+          "y": 1259.445685609598
+        }
+      },
+      "tool": {
+        "url": "https://facility.example.com/api/access/open",
+        "body": {
+          "type": "object",
+          "required": [
+            "slotId",
+            "guestName",
+            "paymentReference"
+          ],
+          "properties": {
+            "phone": {
+              "type": "string"
+            },
+            "slotId": {
+              "type": "string"
+            },
+            "guestName": {
+              "type": "string"
+            },
+            "paymentReference": {
+              "type": "string"
+            }
+          }
+        },
+        "name": "open_door",
+        "type": "apiRequest",
+        "method": "POST",
+        "headers": {
+          "type": "object",
+          "properties": {
+            "Content-Type": {
+              "enum": [
+                "application/json"
+              ],
+              "type": "string"
+            },
+            "Authorization": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "Unlock the coworking space door and retrieve the access key for the guest.",
+        "variableExtractionPlan": {
+          "schema": {
+            "type": "object",
+            "required": [
+              "accessKey"
+            ],
+            "properties": {
+              "accessKey": {
+                "type": "string"
+              },
+              "doorStatus": {
+                "type": "string"
+              }
+            }
+          },
+          "aliases": [
+            {
+              "key": "doorOpened",
+              "value": "{{ doorStatus == 'opened' }}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "wrap_up",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": -460.76838218924405,
+          "y": 1744.6296499842326
+        }
+      },
+      "prompt": "Confirm the booking, provide the guest with the access key clearly, and mention the door is now unlocked. Offer any final help and close the conversation politely. Display the access key prominently so it can be rendered on the UI."
+    },
+    {
+      "name": "hangup_1758998629267",
+      "type": "tool",
+      "metadata": {
+        "position": {
+          "x": 311.5443906121243,
+          "y": 68.50660571308397
+        }
+      },
+      "tool": {
+        "type": "endCall",
+        "function": {
+          "name": "untitled_tool",
+          "parameters": {
+            "type": "object",
+            "required": [],
+            "properties": {}
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "See you! ",
+            "blocking": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "conversation_1758998692361",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": 418.9741075362253,
+          "y": 592.934062761728
+        }
+      },
+      "prompt": "There are no available spaces in the coworking, you need to ask if user want's to check different time slots, if no, end call",
+      "messagePlan": {
+        "firstMessage": ""
+      },
+      "toolIds": []
+    }
+  ],
+  "edges": [
+    {
+      "from": "welcome_intake",
+      "to": "availability_lookup",
+      "condition": {
+        "type": "ai",
+        "prompt": "Return true if the guest agreed to book a coworking workstation. Return false if they declined or were unsure."
+      }
+    },
+    {
+      "from": "availability_lookup",
+      "to": "slot_selection",
+      "condition": {
+        "type": "ai",
+        "prompt": "Return true if at least one suitable workstation slot was found and presented to the guest."
+      }
+    },
+    {
+      "from": "slot_selection",
+      "to": "apple_pay_authorization",
+      "condition": {
+        "type": "ai",
+        "prompt": "Return true if the guest explicitly confirmed the slot selection and is ready to pay."
+      }
+    },
+    {
+      "from": "apple_pay_authorization",
+      "to": "door_access",
+      "condition": {
+        "type": "ai",
+        "prompt": "Return true if the Apple Pay payment was approved."
+      }
+    },
+    {
+      "from": "door_access",
+      "to": "wrap_up",
+      "condition": {
+        "type": "ai",
+        "prompt": "Return true once the door unlock API call succeeded and an access key is available."
+      }
+    },
+    {
+      "from": "welcome_intake",
+      "to": "hangup_1758998629267",
+      "condition": {
+        "type": "ai",
+        "prompt": "if the user said no, or he is not interested in booking a coworking space"
+      }
+    },
+    {
+      "from": "availability_lookup",
+      "to": "conversation_1758998692361",
+      "condition": {
+        "type": "ai",
+        "prompt": "If there is no available slots, say to the user that this is no available slots in this time slots"
+      }
+    }
+  ],
+  "model": {
+    "model": "gpt-4o-mini",
+    "provider": "openai",
+    "temperature": 0.3
+  },
+  "voice": {
+    "model": "gpt-4o-mini-tts",
+    "voiceId": "alloy",
+    "provider": "openai"
+  },
+  "globalPrompt": "You are the friendly front-desk concierge for a coworking loft. Follow workflow context carefully, keep conversations warm and efficient, never skip required checks, and confirm each step clearly with the guest."
+}
