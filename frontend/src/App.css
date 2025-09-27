@@ -45,6 +45,12 @@ main {
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
+.session-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .card h2,
 .card h3 {
   margin-top: 0;
@@ -70,8 +76,14 @@ textarea {
   padding: 0.65rem 0.75rem;
   border-radius: 8px;
   border: 1px solid rgba(148, 163, 184, 0.6);
-  background: #f8fafc;
+  background: #ffffff;
   font-size: 0.95rem;
+  color: #0f172a;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8;
 }
 
 textarea {
@@ -88,6 +100,19 @@ button {
   color: #ffffff;
   font-weight: 600;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+button.ghost {
+  background: rgba(148, 163, 184, 0.2);
+  color: #475569;
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+button.ghost:hover {
+  box-shadow: none;
+  transform: none;
 }
 
 button:hover {

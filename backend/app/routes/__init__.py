@@ -1,3 +1,3 @@
-from . import booking, calls, events, metadata, realtime
+from . import booking, calls, events, metadata, realtime, vapi_tools
 
-__all__ = ["booking", "calls", "events", "metadata", "realtime"]
+__all__ = ["booking", "calls", "events", "metadata", "realtime", "vapi_tools"]

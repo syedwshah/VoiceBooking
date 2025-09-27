@@ -1,5 +1,6 @@
 from functools import lru_cache
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional
 
 from pydantic import Field, HttpUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,7 +16,7 @@ class Settings(BaseSettings):
     twilio_account_sid: Optional[str] = Field(None, alias="TWILIO_ACCOUNT_SID")
     twilio_auth_token: Optional[str] = Field(None, alias="TWILIO_AUTH_TOKEN")
     twilio_phone_number: Optional[str] = Field(None, alias="TWILIO_PHONE_NUMBER")
-    frontend_origin: HttpUrl = Field("http://localhost:5173", alias="FRONTEND_ORIGIN")
+    frontend_origin: str = Field("http://localhost:5173", alias="FRONTEND_ORIGIN")
     backend_port: int = Field(8000, alias="BACKEND_PORT")
     venue_data_path: str = Field("backend/app/data/venues.json", alias="VENUE_DATA_PATH")
     callback_secret: Optional[str] = Field(None, alias="CALLBACK_SECRET")
@@ -24,10 +25,23 @@ class Settings(BaseSettings):
         alias="DATABASE_URL",
     )
     database_echo: bool = Field(False, alias="DATABASE_ECHO")
+    public_backend_url: str = Field("http://localhost:8000", alias="PUBLIC_BACKEND_URL")
+    model_config = SettingsConfigDict(
+        env_file=str(Path(__file__).resolve().parents[3] / ".env"),
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
+    @property
+    def frontend_origins(self) -> List[str]:
+        return [origin.strip() for origin in self.frontend_origin.split(",") if origin.strip()]
 
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+@property
+def frontend_origins(self) -> List[str]:
+    return [origin.strip() for origin in str(self.frontend_origin).split(",") if origin.strip()]

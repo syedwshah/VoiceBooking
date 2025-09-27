@@ -7,6 +7,7 @@ export interface CallBriefPayload {
   objective?: string;
   notes?: string;
   venue_id?: string;
+  phone_number?: string;
 }
 
 export interface SessionSummary {

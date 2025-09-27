@@ -50,6 +50,7 @@ VoiceBooking/
      - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`.
      - `CALLBACK_SECRET` for authenticating Vapi webhooks (optional for local dev).
       - `DATABASE_URL` (default expects Postgres running on `localhost:5432`).
+      - `PUBLIC_BACKEND_URL` (the URL Vapi can reach for tool webhooks; use your tunnel/host).
 
 3. **Start Postgres** (Docker recommended)
    ```bash

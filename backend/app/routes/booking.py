@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
-from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
 from app.models import Booking
+from app.schemas.booking import BookingSubmission, CustomerInfo
 from app.services.booking_service import (
     BookingPayload,
     BookingService,
@@ -18,26 +16,6 @@ from app.services.booking_service import (
 )
 from app.stores.session_store import BookingStatus as StoreBookingStatus
 from app.stores.session_store import session_store
-
-
-class CustomerInfo(BaseModel):
-    name: Optional[str] = None
-    email: Optional[str] = None
-    phone_number: Optional[str] = None
-    attributes: Dict[str, Any] = Field(default_factory=dict)
-
-
-class BookingConfirmation(BaseModel):
-    venue_id: str
-    room_id: Optional[str] = None
-    start_time: Optional[datetime] = None
-    duration_minutes: Optional[int] = None
-    attendee_count: Optional[int] = None
-    notes: Optional[str] = None
-    details: Dict[str, Any] = Field(default_factory=dict)
-    customer: CustomerInfo
-    payment_amount: Optional[Decimal] = None
-    payment_currency: str = "USD"
 
 
 router = APIRouter(prefix="/booking", tags=["booking"])
@@ -87,7 +65,7 @@ def _serialize_booking(booking: Booking) -> Dict[str, Any]:
 @router.post("/{session_id}/confirm")
 async def confirm_booking(
     session_id: str,
-    payload: BookingConfirmation,
+    payload: BookingSubmission,
     db: AsyncSession = Depends(get_session),
     booking_service: BookingService = Depends(get_booking_service),
 ) -> Dict[str, Any]:
