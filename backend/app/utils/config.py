@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     backend_port: int = Field(8000, alias="BACKEND_PORT")
     venue_data_path: str = Field("backend/app/data/venues.json", alias="VENUE_DATA_PATH")
     callback_secret: Optional[str] = Field(None, alias="CALLBACK_SECRET")
+    database_url: str = Field(
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/voicebooking",
+        alias="DATABASE_URL",
+    )
+    database_echo: bool = Field(False, alias="DATABASE_ECHO")
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 

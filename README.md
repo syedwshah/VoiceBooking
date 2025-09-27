@@ -6,9 +6,11 @@ VoiceBooking is a hackathon-ready platform that lets you spin up outreach and bo
 
 ```
 VoiceBooking/
-├── backend/            # FastAPI app, services, session store, venue data
+├── backend/            # FastAPI app, database models, services, scripts
+│   ├── alembic/        # Database migrations
+│   └── scripts/        # Helper scripts (e.g. seed data)
 ├── frontend/           # React + Vite SPA for orchestration UI
-├── infra/              # Deployment and devops helpers (placeholder)
+├── infra/              # Docker compose and devops helpers
 ├── .env                # Local secrets (never commit)
 ├── .env.example        # Template for required configuration
 └── README.md
@@ -16,7 +18,7 @@ VoiceBooking/
 
 ### Backend Highlights
 - `/api/calls/launch` kicks off Vapi outreach or booking calls.
-- `/api/metadata/*` serves venue data and session summaries.
+- `/api/metadata/*` serves venue data and session summaries (backed by Postgres).
 - `/api/booking/*` manages booking confirmation and key issuance.
 - `/api/events/{session}` exposes SSE stream for live status (stub).
 
@@ -46,20 +48,39 @@ VoiceBooking/
      - `OPENAI_API_KEY`, `OPENAI_REALTIME_MODEL`.
      - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`.
      - `CALLBACK_SECRET` for authenticating Vapi webhooks (optional for local dev).
+      - `DATABASE_URL` (default expects Postgres running on `localhost:5432`).
 
-3. **Run the backend**
+3. **Start Postgres** (Docker recommended)
+   ```bash
+   cd infra
+   docker compose up -d
+   ```
+
+4. **Run database migrations**
+   ```bash
+   cd backend
+   source .venv/bin/activate
+   alembic upgrade head
+   ```
+
+5. **Seed venue data** (optional but handy for local testing)
+   ```bash
+   python scripts/seed_data.py
+   ```
+
+6. **Run the backend**
    ```bash
    cd backend
    uvicorn app.main:app --reload --port 8000
    ```
 
-4. **Run the frontend**
+7. **Run the frontend**
    ```bash
    cd frontend
    npm run dev -- --port 5173
    ```
 
-5. **Open the dashboard**
+8. **Open the dashboard**
    - Visit `http://localhost:5173`.
    - Fill the call brief form, launch an outreach or booking scenario, and watch the status and summaries update.
 
@@ -69,6 +90,7 @@ VoiceBooking/
 - Wire up the OpenAI Realtime WebSocket bridge for the chat booking assistant.
 - Add authentication and persistence if you move beyond a single-user demo.
 - Replace the mock key issuance service with a real smart-lock integration or MCP payment gate.
+- Expand the schema/migrations to cover bookings, payments, and audit logs when you progress beyond the prototype.
 
 ## Tooling & Scripts
 
