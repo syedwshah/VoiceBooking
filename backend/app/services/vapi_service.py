@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class VapiService:
     """Wrapper around Vapi API for launching calls and responding to tool executions."""
 
-    BASE_URL = "https://api.vapi.ai"
+    BASE_URL = "https://api.vapi.ai/api/v1"
 
     def __init__(self) -> None:
         self.settings = get_settings()
