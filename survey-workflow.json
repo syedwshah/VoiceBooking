@@ -1,0 +1,560 @@
+{
+  "name": "Customer Satisfaction Survey",
+  "nodes": [
+    {
+      "name": "start_introduction",
+      "type": "conversation",
+      "isStart": true,
+      "metadata": {
+        "position": {
+          "x": 1536.789449549366,
+          "y": -950.6126742658206
+        }
+      },
+      "prompt": "You are Cameron, a feedback collection voice assistant for QualityMetrics Research. Start with: 'We're conducting a brief survey about customer satisfaction. This will take approximately 5 to 7 minutes and help improve products and services. Would you be willing to participate today?'",
+      "messagePlan": {
+        "firstMessage": "Hello, this is Cameron calling on behalf of QualityMetrics Research."
+      }
+    },
+    {
+      "name": "context_setting",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": -311.1651062767652,
+          "y": -159.63360846592298
+        }
+      },
+      "prompt": "Explain the survey purpose: 'The purpose of this survey is to understand your experience with our products so that we can make it better for customers like you. I'll ask you a few questions. Most will take just a few seconds to answer. Your responses will be kept confidential and reported only in combination with other participants' feedback.'\n\nAsk if the user understands and is ready to proceed with the main survey or is interested in a shorter version of it "
+    },
+    {
+      "name": "reschedule_offer",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": 1537.0503083163985,
+          "y": -210.95843072916665
+        }
+      },
+      "prompt": "Respond to hesitation: 'I understand your time is valuable. The survey is designed to be brief, and your feedback will directly influence improvements to products and services you use. Would it be better if I called at another time, or would you prefer to receive this survey via email instead?'"
+    },
+    {
+      "name": "engagement_questions",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": -1036.8339902511216,
+          "y": 398.25905189828825
+        }
+      },
+      "prompt": "Start with engagement questions to build momentum. Ask: 'First, have you used any of our products or services in the past 3 months?' Wait for response, then ask: 'How often do you typically interact with our company - would you say weekly, monthly, or less frequently?'",
+      "variableExtractionPlan": {
+        "output": [
+          {
+            "enum": [],
+            "type": "string",
+            "title": "recent_usage",
+            "description": "whether user has used products/services in past 3 months"
+          },
+          {
+            "enum": [],
+            "type": "string",
+            "title": "usage_frequency",
+            "description": "how often user interacts with the company"
+          }
+        ]
+      }
+    },
+    {
+      "name": "core_satisfaction",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": 417.90409470272056,
+          "y": 391.1710825344917
+        }
+      },
+      "prompt": "Ask core satisfaction questions. Say: 'I'd like to ask about your overall experience. On a scale of 1 to 5, where 1 is very dissatisfied and 5 is very satisfied, how would you rate your overall experience with our company?' Wait for response, then ask: 'Thinking about your most recent interaction with us, what went particularly well?'",
+      "variableExtractionPlan": {
+        "output": [
+          {
+            "enum": [],
+            "type": "number",
+            "title": "satisfaction_rating",
+            "description": "overall satisfaction rating from 1-5"
+          },
+          {
+            "enum": [],
+            "type": "string",
+            "title": "positive_experience",
+            "description": "what went well in recent interaction"
+          }
+        ]
+      }
+    },
+    {
+      "name": "satisfaction_followup",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": -1613.7726355031182,
+          "y": 1069.4997879853927
+        }
+      },
+      "prompt": "Say: 'That's great to hear! What specific aspects of our service do you value most?'"
+    },
+    {
+      "name": "nps_question",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": -19.523287992371678,
+          "y": 1031.6522848172492
+        }
+      },
+      "prompt": "Ask NPS question: 'On a scale of 0-10, where 0 is not at all likely and 10 is extremely likely, how likely are you to recommend our company to a friend or colleague?' Wait for response, then ask: 'What is the primary reason for your rating?'",
+      "variableExtractionPlan": {
+        "output": [
+          {
+            "enum": [],
+            "type": "number",
+            "title": "nps_score",
+            "description": "Net Promoter Score from 0-10"
+          },
+          {
+            "enum": [],
+            "type": "string",
+            "title": "nps_reason",
+            "description": "reason for the NPS rating given"
+          }
+        ]
+      }
+    },
+    {
+      "name": "improvement_areas",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": -595.7269251723233,
+          "y": 1058.678308619724
+        }
+      },
+      "prompt": "Ask about improvements: 'What aspects of our products or services could be improved to better meet your needs?' Allow silence for thinking, then if needed: 'Could you share a specific example of when you felt we could have done better?'",
+      "variableExtractionPlan": {
+        "output": [
+          {
+            "enum": [],
+            "type": "string",
+            "title": "improvement_suggestions",
+            "description": "areas for improvement mentioned by user"
+          }
+        ]
+      }
+    },
+    {
+      "name": "competitive_comparison",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": 864.4798487130331,
+          "y": 1040.1692332710993
+        }
+      },
+      "prompt": "Ask comparison question: 'Compared to other similar companies you've worked with, would you say our service is better, worse, or about the same?' Then ask: 'What makes the biggest difference in your experience with companies like ours?'",
+      "variableExtractionPlan": {
+        "output": [
+          {
+            "enum": [],
+            "type": "string",
+            "title": "competitive_rating",
+            "description": "how company compares to competitors"
+          },
+          {
+            "enum": [],
+            "type": "string",
+            "title": "key_differentiators",
+            "description": "what makes biggest difference in customer experience"
+          }
+        ]
+      }
+    },
+    {
+      "name": "demographic_intro",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": -320.82721330388466,
+          "y": 1655.4590781492213
+        }
+      },
+      "prompt": "Introduce demographic questions: 'Just a few final classification questions to help us analyze the results and ensure we're representing all types of customers. If you're comfortable sharing, which of the following age ranges do you fall into: 18 to 24, 25 to 40, 41 to 55, or 55 and over?'",
+      "variableExtractionPlan": {
+        "output": [
+          {
+            "enum": [],
+            "type": "string",
+            "title": "age_range",
+            "description": "age range category of respondent"
+          }
+        ]
+      }
+    },
+    {
+      "name": "final_thoughts",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": -844.979338922804,
+          "y": 2159.3486005605646
+        }
+      },
+      "prompt": "Ask for final thoughts: 'Those are all the questions I have. Is there anything else about your experience with our company that you'd like to share that we haven't covered?' Allow time for response.",
+      "variableExtractionPlan": {
+        "output": [
+          {
+            "enum": [],
+            "type": "string",
+            "title": "additional_feedback",
+            "description": "any additional feedback or comments"
+          }
+        ]
+      }
+    },
+    {
+      "name": "customer_type",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": 153.19478875491984,
+          "y": 2171.6636295895214
+        }
+      },
+      "prompt": "Ask: 'Are you a new patient to Wellness Partners, or have you visited us before?' This helps me provide the right assistance for your appointment.",
+      "variableExtractionPlan": {
+        "output": [
+          {
+            "enum": [
+              "new",
+              "existing"
+            ],
+            "type": "string",
+            "title": "customer_type",
+            "description": "Whether the patient is new or existing"
+          }
+        ]
+      }
+    },
+    {
+      "name": "node_1748495176744",
+      "type": "conversation",
+      "metadata": {
+        "position": {
+          "x": 3534.1379658502237,
+          "y": -948.7776870351952
+        }
+      },
+      "prompt": "Confirm that the user wants to speak to a human and ask them what they would like to speak to a human about.",
+      "globalNodePlan": {
+        "enabled": true,
+        "enterCondition": "User wants to speak to a human"
+      }
+    },
+    {
+      "name": "Transfer Call",
+      "type": "tool",
+      "metadata": {
+        "position": {
+          "x": 3529.607467974884,
+          "y": -433.1950447045268
+        }
+      },
+      "tool": {
+        "type": "transferCall",
+        "function": {
+          "name": "untitled_tool",
+          "parameters": {
+            "type": "object",
+            "required": [],
+            "properties": {}
+          }
+        },
+        "destinations": []
+      }
+    },
+    {
+      "name": "hangup_1748495840705",
+      "type": "tool",
+      "metadata": {
+        "position": {
+          "x": 1218.718436166098,
+          "y": 242.84519437504542
+        }
+      },
+      "tool": {
+        "type": "endCall",
+        "function": {
+          "name": "untitled_tool",
+          "parameters": {
+            "type": "object",
+            "required": [],
+            "properties": {}
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "Perfect! I'll make sure to reach out at a more convenient time. Thank you and have a great day!",
+            "blocking": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "hangup_1748495855580",
+      "type": "tool",
+      "metadata": {
+        "position": {
+          "x": 1863.0804658032348,
+          "y": 241.08539375893156
+        }
+      },
+      "tool": {
+        "type": "endCall",
+        "function": {
+          "name": "untitled_tool",
+          "parameters": {
+            "type": "object",
+            "required": [],
+            "properties": {}
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "That's a great option! You'll receive the survey via email within the next 24 hours. Thank you for your willingness to participate!",
+            "blocking": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "hangup_1748495870983",
+      "type": "tool",
+      "metadata": {
+        "position": {
+          "x": 2699.4114918044247,
+          "y": -153.96167287549952
+        }
+      },
+      "tool": {
+        "type": "endCall",
+        "function": {
+          "name": "untitled_tool",
+          "parameters": {
+            "type": "object",
+            "required": [],
+            "properties": {}
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "I completely understand. Thank you for your time and have a wonderful day!",
+            "blocking": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "hangup_1748735165807",
+      "type": "tool",
+      "metadata": {
+        "position": {
+          "x": -345.85448557978043,
+          "y": 2699.113643146562
+        }
+      },
+      "tool": {
+        "type": "endCall",
+        "function": {
+          "name": "untitled_tool",
+          "parameters": {
+            "type": "object",
+            "required": [],
+            "properties": {}
+          }
+        },
+        "messages": [
+          {
+            "type": "request-start",
+            "content": "Thank you very much for taking the time to share your feedback today. Your insights are extremely valuable and will help us improve our products and services. Have a wonderful day!",
+            "blocking": true
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_introduction",
+      "to": "context_setting",
+      "condition": {
+        "type": "ai",
+        "prompt": "User agreed to participate in the survey"
+      }
+    },
+    {
+      "from": "start_introduction",
+      "to": "reschedule_offer",
+      "condition": {
+        "type": "ai",
+        "prompt": "User expressed hesitation or concern about timing"
+      }
+    },
+    {
+      "from": "start_introduction",
+      "to": "hangup_1748495870983",
+      "condition": {
+        "type": "ai",
+        "prompt": "User clearly declined to participate"
+      }
+    },
+    {
+      "from": "context_setting",
+      "to": "engagement_questions",
+      "condition": {
+        "type": "ai",
+        "prompt": "User understood the survey context and is ready to proceed with the main survey"
+      }
+    },
+    {
+      "from": "context_setting",
+      "to": "core_satisfaction",
+      "condition": {
+        "type": "ai",
+        "prompt": "User wanted to proceed with the shorter version of the survey"
+      }
+    },
+    {
+      "from": "reschedule_offer",
+      "to": "hangup_1748495840705",
+      "condition": {
+        "type": "ai",
+        "prompt": "User preferred to be called at another time"
+      }
+    },
+    {
+      "from": "reschedule_offer",
+      "to": "hangup_1748495855580",
+      "condition": {
+        "type": "ai",
+        "prompt": "User preferred to receive survey via email"
+      }
+    },
+    {
+      "from": "engagement_questions",
+      "to": "satisfaction_followup",
+      "condition": {
+        "type": "ai",
+        "prompt": "User indicated recent usage and engagement with the company"
+      }
+    },
+    {
+      "from": "engagement_questions",
+      "to": "improvement_areas",
+      "condition": {
+        "type": "ai",
+        "prompt": "User indicated limited or infrequent usage"
+      }
+    },
+    {
+      "from": "core_satisfaction",
+      "to": "nps_question",
+      "condition": {
+        "type": "ai",
+        "prompt": "User provided satisfaction rating and positive experience details"
+      }
+    },
+    {
+      "from": "core_satisfaction",
+      "to": "competitive_comparison",
+      "condition": {
+        "type": "ai",
+        "prompt": "User provided mixed or concerning feedback about their experience"
+      }
+    },
+    {
+      "from": "satisfaction_followup",
+      "to": "demographic_intro",
+      "condition": {
+        "type": "ai",
+        "prompt": "User described the services they value the most"
+      }
+    },
+    {
+      "from": "nps_question",
+      "to": "demographic_intro",
+      "condition": {
+        "type": "ai",
+        "prompt": "User provided NPS score and reasoning"
+      }
+    },
+    {
+      "from": "improvement_areas",
+      "to": "demographic_intro",
+      "condition": {
+        "type": "ai",
+        "prompt": "User shared improvement suggestions or examples"
+      }
+    },
+    {
+      "from": "competitive_comparison",
+      "to": "demographic_intro",
+      "condition": {
+        "type": "ai",
+        "prompt": "User provided comparison feedback and key differentiators"
+      }
+    },
+    {
+      "from": "demographic_intro",
+      "to": "final_thoughts",
+      "condition": {
+        "type": "ai",
+        "prompt": "User provided age range information"
+      }
+    },
+    {
+      "from": "demographic_intro",
+      "to": "customer_type",
+      "condition": {
+        "type": "ai",
+        "prompt": "User preferred not to share age"
+      }
+    },
+    {
+      "from": "final_thoughts",
+      "to": "hangup_1748735165807",
+      "condition": {
+        "type": "ai",
+        "prompt": "User shared final thoughts or indicates they have nothing more to add"
+      }
+    },
+    {
+      "from": "customer_type",
+      "to": "hangup_1748735165807",
+      "condition": {
+        "type": "ai",
+        "prompt": "User provided customer relationship information"
+      }
+    },
+    {
+      "from": "node_1748495176744",
+      "to": "Transfer Call",
+      "condition": {
+        "type": "ai",
+        "prompt": "User confirmed they want to speak to a human and describe what they want to talk to them about"
+      }
+    }
+  ],
+  "globalPrompt": ""
+}
