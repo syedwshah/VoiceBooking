@@ -1,0 +1,88 @@
+[
+  {
+    "id": "aurora-hall",
+    "name": "Aurora Hall",
+    "address": "120 Market Street, San Francisco, CA",
+    "contact": "events@aurorahall.com",
+    "rooms": [
+      {
+        "id": "aurora-main",
+        "label": "Main Gallery",
+        "capacity": 200,
+        "amenities": ["Stage lighting", "Projection wall", "Catering prep"],
+        "availability": {
+          "monday": ["09:00-12:00", "13:00-18:00"],
+          "tuesday": ["09:00-18:00"],
+          "wednesday": ["09:00-13:00"],
+          "thursday": ["13:00-21:00"],
+          "friday": ["09:00-23:00"],
+          "saturday": ["10:00-23:00"],
+          "sunday": []
+        }
+      },
+      {
+        "id": "aurora-lounge",
+        "label": "Skyline Lounge",
+        "capacity": 60,
+        "amenities": ["City view", "Mixology bar", "Pod seating"],
+        "availability": {
+          "monday": ["15:00-22:00"],
+          "tuesday": ["15:00-22:00"],
+          "wednesday": ["15:00-22:00"],
+          "thursday": ["15:00-00:00"],
+          "friday": ["15:00-00:00"],
+          "saturday": ["12:00-00:00"],
+          "sunday": ["12:00-21:00"]
+        }
+      }
+    ],
+    "policies": {
+      "lead_time_days": 7,
+      "preferred_vendors": ["Brightline Catering", "AudioFlow"],
+      "notes": "Security staffing required for events over 150 guests."
+    }
+  },
+  {
+    "id": "harbor-loft",
+    "name": "Harbor Loft",
+    "address": "5 Pier Plaza, Seattle, WA",
+    "contact": "booking@harborloft.io",
+    "rooms": [
+      {
+        "id": "harbor-atrium",
+        "label": "Atrium",
+        "capacity": 120,
+        "amenities": ["Natural lighting", "Portable stage", "Sound package"],
+        "availability": {
+          "monday": ["08:00-18:00"],
+          "tuesday": ["08:00-18:00"],
+          "wednesday": ["08:00-18:00"],
+          "thursday": ["08:00-18:00"],
+          "friday": ["08:00-18:00"],
+          "saturday": ["09:00-22:00"],
+          "sunday": ["09:00-18:00"]
+        }
+      },
+      {
+        "id": "harbor-boardroom",
+        "label": "Boardroom",
+        "capacity": 24,
+        "amenities": ["Video conferencing", "Whiteboard wall", "Hospitality nook"],
+        "availability": {
+          "monday": ["09:00-17:00"],
+          "tuesday": ["09:00-17:00"],
+          "wednesday": ["09:00-17:00"],
+          "thursday": ["09:00-17:00"],
+          "friday": ["09:00-17:00"],
+          "saturday": ["10:00-15:00"],
+          "sunday": []
+        }
+      }
+    ],
+    "policies": {
+      "lead_time_days": 3,
+      "preferred_vendors": ["Northwest Catering"],
+      "notes": "Noise curfew at 22:00."
+    }
+  }
+]
