@@ -42,23 +42,6 @@ interface RealtimeEvent {
   event: { [key: string]: any };
 }
 
-interface PaymentToastState {
-  transactionId: string;
-  amount?: number | null;
-  currency?: string | null;
-}
-
-interface ApiPayment {
-  id: number;
-  booking_id?: number | null;
-  provider: string;
-  status: string;
-  amount?: number | null;
-  currency?: string | null;
-  transaction_id?: string | null;
-  provider_hint?: string | null;
-}
-
 export function ConsolePage() {
   const wavRecorderRef = useRef(new WavRecorder({ sampleRate: 24000 }));
   const wavStreamPlayerRef = useRef(new WavStreamPlayer({ sampleRate: 24000 }));
@@ -143,8 +126,6 @@ export function ConsolePage() {
 
   const [floorState, dispatchFloor] = useReducer(floorReducer, initialFloorState);
   const floorDirectoryRef = useRef<FloorDirectory>(initialDirectory);
-  const [paymentToast, setPaymentToast] = useState<PaymentToastState | null>(null);
-  const processedTransactionsRef = useRef<Set<string>>(new Set());
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const importMeta: ImportMeta = import.meta;
@@ -172,32 +153,6 @@ export function ConsolePage() {
     }
     return ctx;
   }, []);
-
-  const playPaymentChime = useCallback(async () => {
-    try {
-      const ctx = await ensureAudioContext();
-      if (!ctx) return;
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const now = ctx.currentTime;
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, now);
-      oscillator.frequency.exponentialRampToValueAtTime(1320, now + 0.18);
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.16, now + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.start();
-      oscillator.stop(now + 0.65);
-      oscillator.onended = () => {
-        gain.disconnect();
-        oscillator.disconnect();
-      };
-    } catch (error) {
-      console.warn('Unable to play payment chime', error);
-    }
-  }, [ensureAudioContext]);
 
   const fetchFloorData = useCallback(async () => {
     if (!backendBase) {
@@ -298,48 +253,6 @@ export function ConsolePage() {
     }
   }, [backendBase]);
 
-  const pollPayments = useCallback(async () => {
-    if (!backendBase) {
-      return;
-    }
-    try {
-      console.debug('[payments] polling…');
-      const response = await fetch(`${backendBase}/vapi/tools/payments`);
-      if (!response.ok) {
-        throw new Error(`Failed to load payments (${response.status})`);
-      }
-      const payload = (await response.json()) as { payments?: ApiPayment[] };
-      const payments = payload.payments ?? [];
-      console.debug('[payments] received', payments.length, 'records');
-      if (processedTransactionsRef.current.size === 0 && payments.length) {
-        for (const payment of payments) {
-          const transactionId = payment.transaction_id || String(payment.id);
-          processedTransactionsRef.current.add(transactionId);
-        }
-        return;
-      }
-      for (const payment of payments) {
-        if ((payment.status || '').toLowerCase() !== 'succeeded') continue;
-        const providerLabel = (payment.provider_hint || payment.provider || '').toLowerCase();
-        if (providerLabel !== 'apple_pay') continue;
-        const transactionId = payment.transaction_id || String(payment.id);
-        if (processedTransactionsRef.current.has(transactionId)) continue;
-        processedTransactionsRef.current.add(transactionId);
-        console.debug('[payments] new apple pay transaction', transactionId);
-        setPaymentToast({
-          transactionId,
-          amount: payment.amount ?? null,
-          currency: payment.currency ?? undefined,
-        });
-        await playPaymentChime();
-        void fetchFloorData();
-        break;
-      }
-    } catch (error) {
-      console.warn('Failed to poll payments', error);
-    }
-  }, [backendBase, fetchFloorData, playPaymentChime]);
-
   useEffect(() => {
     void fetchFloorData();
     const interval = setInterval(() => {
@@ -347,14 +260,6 @@ export function ConsolePage() {
     }, 30000);
     return () => clearInterval(interval);
   }, [fetchFloorData]);
-
-  useEffect(() => {
-    void pollPayments();
-    const interval = setInterval(() => {
-      void pollPayments();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [pollPayments]);
 
   useEffect(() => {
     const handler = () => {
@@ -370,14 +275,6 @@ export function ConsolePage() {
     };
   }, [ensureAudioContext]);
 
-  useEffect(() => {
-    if (!paymentToast) {
-      return;
-    }
-    const timeout = window.setTimeout(() => setPaymentToast(null), 4000);
-    return () => window.clearTimeout(timeout);
-  }, [paymentToast]);
-
   const formatTime = useCallback((timestamp: string) => {
     const t0 = new Date(startTimeRef.current).valueOf();
     const t1 = new Date(timestamp).valueOf();
@@ -387,18 +284,6 @@ export function ConsolePage() {
     const m = Math.floor(delta / 60_000) % 60;
     const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
     return `${pad(m)}:${pad(s)}.${pad(hs)}`;
-  }, []);
-
-  const formatCurrency = useCallback((amount?: number | null, currency?: string | null) => {
-    if (amount == null) {
-      return currency || '';
-    }
-    try {
-      return new Intl.NumberFormat(undefined, { style: 'currency', currency: currency || 'USD' }).format(amount);
-    } catch {
-      const rounded = Math.round(amount * 100) / 100;
-      return `${rounded.toFixed(2)} ${currency || ''}`.trim();
-    }
   }, []);
 
 const connectConversation = useCallback(async () => {
@@ -451,6 +336,7 @@ const connectConversation = useCallback(async () => {
         { time: new Date().toISOString(), source: 'server', event: { type: 'call-end' } }
       ]);
       setIsConnected(false);
+      void fetchFloorData();
     });
 
     vapi.on('message', (message) => {
@@ -504,8 +390,6 @@ const connectConversation = useCallback(async () => {
     setIsConnected(false);
     setRealtimeEvents([]);
     setItems([]);
-    setPaymentToast(null);
-    processedTransactionsRef.current.clear();
 
     try {
       await vapiRef.current.stop();
@@ -601,17 +485,6 @@ const connectConversation = useCallback(async () => {
 
 return (
   <div data-component="ConsolePage" className="console-page">
-    {paymentToast && (
-      <div className="payment-toast" role="status" aria-live="polite">
-        <div className="payment-toast__icon"> Pay</div>
-        <div className="payment-toast__content">
-          <div className="payment-toast__title">Payment successful</div>
-          <div className="payment-toast__body">
-            {formatCurrency(paymentToast.amount ?? undefined, paymentToast.currency ?? undefined)} charged
-          </div>
-        </div>
-      </div>
-    )}
     <div className="content-top">
       <div className="content-title">
         <img src={logo} alt="OpenAI logomark" />
