@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useReducer } from 'react';
 import Vapi from '@vapi-ai/web';
 import { WavRecorder, WavStreamPlayer } from '../lib/wavtools/index.js';
 import { WavRenderer } from '../utils/wav_renderer';
@@ -76,20 +76,78 @@ export function ConsolePage() {
   const [isConnected, setIsConnected] = useState(false);
   const [canPushToTalk, setCanPushToTalk] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
-  const [floorRooms, setFloorRooms] = useState<FloorRoom[]>([]);
-  const [floorVenueName, setFloorVenueName] = useState('Coworking Floor');
-  const [floorLoading, setFloorLoading] = useState(false);
-  const [floorError, setFloorError] = useState<string | null>(null);
-  const [floorUpdatedAt, setFloorUpdatedAt] = useState<Date | null>(null);
-  const [bookingsList, setBookingsList] = useState<ApiBooking[]>([]);
-  const [roomDirectory, setRoomDirectory] = useState<Record<string, { label: string; venueName: string; capacity: number }>>(
-    () => Object.fromEntries(Object.entries(ROOM_DEFAULTS).map(([id, room]) => [id, { label: room.label, venueName: room.venueName, capacity: room.capacity }]))
+
+  type FloorDirectoryEntry = { label: string; venueName: string; capacity: number };
+  type FloorDirectory = Record<string, FloorDirectoryEntry>;
+
+  interface FloorState {
+    rooms: FloorRoom[];
+    venueName: string;
+    loading: boolean;
+    error: string | null;
+    updatedAt: Date | null;
+    directory: FloorDirectory;
+    bookings: ApiBooking[];
+  }
+
+  type FloorAction =
+    | { type: 'loading' }
+    | { type: 'loaded'; payload: { rooms: FloorRoom[]; venueName: string; updatedAt: Date; directory: FloorDirectory; bookings: ApiBooking[] } }
+    | { type: 'error'; error: string };
+
+  const initialDirectory: FloorDirectory = Object.fromEntries(
+    Object.entries(ROOM_DEFAULTS).map(([id, room]) => [id, { label: room.label, venueName: room.venueName, capacity: room.capacity }])
   );
+
+  const initialRooms: FloorRoom[] = SUPPORTED_ROOM_IDS.map((roomId) => {
+    const meta = initialDirectory[roomId] ?? { label: roomId, venueName: 'Coworking Floor', capacity: 0 };
+    return {
+      id: roomId,
+      label: meta.label,
+      capacity: meta.capacity,
+      status: 'available',
+    } as FloorRoom;
+  });
+
+  const initialFloorState: FloorState = {
+    rooms: initialRooms,
+    venueName: 'Coworking Floor',
+    loading: false,
+    error: null,
+    updatedAt: null,
+    directory: initialDirectory,
+    bookings: [],
+  };
+
+  const floorReducer = (state: FloorState, action: FloorAction): FloorState => {
+    switch (action.type) {
+      case 'loading':
+        return { ...state, loading: true, error: null };
+      case 'loaded':
+        return {
+          ...state,
+          loading: false,
+          error: null,
+          rooms: action.payload.rooms,
+          venueName: action.payload.venueName,
+          updatedAt: action.payload.updatedAt,
+          directory: action.payload.directory,
+          bookings: action.payload.bookings,
+        };
+      case 'error':
+        return { ...state, loading: false, error: action.error };
+      default:
+        return state;
+    }
+  };
+
+  const [floorState, dispatchFloor] = useReducer(floorReducer, initialFloorState);
+  const floorDirectoryRef = useRef<FloorDirectory>(initialDirectory);
   const [paymentToast, setPaymentToast] = useState<PaymentToastState | null>(null);
   const processedTransactionsRef = useRef<Set<string>>(new Set());
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const backendBase = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000/api').replace(/\/$/, '');
+  const backendBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
   const ensureAudioContext = useCallback(async () => {
     const AudioCtx =
@@ -141,12 +199,11 @@ export function ConsolePage() {
 
   const fetchFloorData = useCallback(async () => {
     if (!backendBase) {
-      setFloorError('Backend URL is not configured');
+      dispatchFloor({ type: 'error', error: 'Backend URL is not configured' });
       return;
     }
     try {
-      setFloorLoading(true);
-      setFloorError(null);
+      dispatchFloor({ type: 'loading' });
 
       const venuesResponse = await fetch(`${backendBase}/metadata/venues`);
       if (!venuesResponse.ok) {
@@ -191,54 +248,53 @@ export function ConsolePage() {
         }
       }
 
-      const directory: Record<string, { label: string; venueName: string; capacity: number }> = { ...roomDirectory };
+      const updatedDirectory: FloorDirectory = { ...floorDirectoryRef.current };
       for (const entry of knownRooms) {
-        directory[entry.id] = { label: entry.label, venueName: entry.venueName, capacity: entry.capacity };
+        updatedDirectory[entry.id] = { label: entry.label, venueName: entry.venueName, capacity: entry.capacity };
       }
 
-      setRoomDirectory((prev) => ({
-        ...prev,
-        ...directory,
-      }));
+      const rooms = SUPPORTED_ROOM_IDS.map((roomId) => {
+        const meta = updatedDirectory[roomId] ?? { ...ROOM_DEFAULTS[roomId] };
+        const booking = bookingsByRoom.get(roomId);
+        return {
+          id: roomId,
+          label: meta?.label ?? ROOM_DEFAULTS[roomId]?.label ?? roomId,
+          capacity: meta?.capacity ?? ROOM_DEFAULTS[roomId]?.capacity ?? 0,
+          status: booking ? 'booked' : 'available',
+          bookingInfo: booking
+            ? {
+                customerName: booking.customer?.name ?? null,
+                startTime: booking.start_time ?? null,
+                endTime: booking.end_time ?? null,
+              }
+            : undefined,
+        } as FloorRoom;
+      });
 
-      setFloorRooms(
-        SUPPORTED_ROOM_IDS.map((roomId) => {
-          const meta = directory[roomId] ?? { ...ROOM_DEFAULTS[roomId] };
-          const booking = bookingsByRoom.get(roomId);
-          return {
-            id: roomId,
-            label: meta?.label ?? ROOM_DEFAULTS[roomId]?.label ?? roomId,
-            capacity: meta?.capacity ?? ROOM_DEFAULTS[roomId]?.capacity ?? 0,
-            status: booking ? 'booked' : 'available',
-            bookingInfo: booking
-              ? {
-                  customerName: booking.customer?.name ?? null,
-                  startTime: booking.start_time ?? null,
-                  endTime: booking.end_time ?? null,
-                }
-              : undefined,
-          } satisfies FloorRoom;
-        })
-      );
+      const updatedBookings = [...allBookings]
+        .filter((booking) => booking.room_id && SUPPORTED_ROOM_IDS.includes(booking.room_id))
+        .sort((a, b) => {
+          const aStart = a.start_time ? new Date(a.start_time).valueOf() : Number.POSITIVE_INFINITY;
+          const bStart = b.start_time ? new Date(b.start_time).valueOf() : Number.POSITIVE_INFINITY;
+          return bStart - aStart;
+        });
 
-      setFloorVenueName('Aurora Hall – Coworking Floor');
-      setFloorUpdatedAt(new Date());
-      setBookingsList(
-        [...allBookings]
-          .filter((booking) => booking.room_id && SUPPORTED_ROOM_IDS.includes(booking.room_id))
-          .sort((a, b) => {
-            const aStart = a.start_time ? new Date(a.start_time).valueOf() : Number.POSITIVE_INFINITY;
-            const bStart = b.start_time ? new Date(b.start_time).valueOf() : Number.POSITIVE_INFINITY;
-            return bStart - aStart;
-          })
-      );
+      dispatchFloor({
+        type: 'loaded',
+        payload: {
+          rooms,
+          venueName: 'Aurora Hall – Coworking Floor',
+          updatedAt: new Date(),
+          directory: updatedDirectory,
+          bookings: updatedBookings,
+        },
+      });
+      floorDirectoryRef.current = updatedDirectory;
     } catch (error) {
       console.error('Failed to load floor data', error);
-      setFloorError(error instanceof Error ? error.message : 'Failed to load floor data');
-    } finally {
-      setFloorLoading(false);
+      dispatchFloor({ type: 'error', error: error instanceof Error ? error.message : 'Failed to load floor data' });
     }
-  }, [backendBase, roomDirectory]);
+  }, [backendBase]);
 
   const pollPayments = useCallback(async () => {
     if (!backendBase) {
@@ -692,11 +748,11 @@ return (
         <div className="content-block floor-plan-card">
           <div className="content-block-body full">
             <FloorPlan
-              rooms={floorRooms}
-              venueName={floorVenueName}
-              isLoading={floorLoading}
-              error={floorError}
-              lastUpdated={floorUpdatedAt}
+              rooms={floorState.rooms}
+              venueName={floorState.venueName}
+              isLoading={floorState.loading}
+              error={floorState.error}
+              lastUpdated={floorState.updatedAt}
               onRefresh={() => {
                 void fetchFloorData();
               }}
@@ -705,12 +761,12 @@ return (
         </div>
         <div className="booking-list">
           <h3>Upcoming bookings</h3>
-          {bookingsList.length === 0 ? (
+          {floorState.bookings.length === 0 ? (
             <div className="booking-empty">No bookings scheduled.</div>
           ) : (
             <ul>
-              {bookingsList.map((booking) => {
-                const roomMeta = booking.room_id ? roomDirectory[booking.room_id] : undefined;
+              {floorState.bookings.map((booking) => {
+                const roomMeta = booking.room_id ? floorState.directory[booking.room_id] : undefined;
                 const roomLabel = roomMeta?.label ?? booking.room_id ?? 'Unknown room';
                 const venueLabel = roomMeta?.venueName ?? booking.venue_id;
                 const start = booking.start_time ? new Date(booking.start_time) : null;
