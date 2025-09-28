@@ -1,0 +1,74 @@
+{
+  "type": "apiRequest",
+  "function": {
+    "name": "apple_pay_authorization"
+  },
+  "name": "apple_pay_authorization",
+  "url": "https://denumerably-hypermetaphoric-elayne.ngrok-free.dev/api/vapi/tools/payment/apple-pay",
+  "method": "POST",
+  "messages": [
+    {
+      "type": "request-start",
+      "blocking": true,
+      "content": "Initiating Apple Pay checkout"
+    },
+    {
+      "type": "request-complete",
+      "content": "Apple Pay authorization completed."
+    }
+  ],
+  "headers": {
+    "type": "object",
+    "properties": {
+      "Content-Type": {
+        "type": "string",
+        "value": "application/json"
+      }
+    }
+  },
+  "body": {
+    "type": "object",
+    "required": ["session_id", "amount", "currency"],
+    "properties": {
+      "session_id": {
+        "type": "string",
+        "description": "Active booking session identifier"
+      },
+      "amount": {
+        "type": "number",
+        "description": "Amount to charge via Apple Pay"
+      },
+      "currency": {
+        "type": "string",
+        "description": "ISO 4217 currency code",
+        "default": "USD"
+      },
+      "booking_id": {
+        "type": "number",
+        "description": "Optional booking identifier if already created"
+      }
+    }
+  },
+  "variableExtractionPlan": {
+    "schema": {
+      "type": "object",
+      "required": ["status", "transaction_id"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Expected to be SUCCEEDED"
+        },
+        "transaction_id": {
+          "type": "string",
+          "description": "Mock Apple Pay transaction identifier"
+        }
+      }
+    },
+    "aliases": [
+      {
+        "key": "isPaymentSuccessful",
+        "value": "{{ status == 'SUCCEEDED' }}"
+      }
+    ]
+  }
+}

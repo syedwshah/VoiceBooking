@@ -1,0 +1,82 @@
+{
+  "type": "apiRequest",
+  "function": {
+    "name": "availability_lookup"
+  },
+  "messages": [
+    {
+      "type": "request-start",
+      "blocking": true
+    }
+  ],
+  "name": "availability_lookup",
+  "url": "https://your-backend.com/api/v1/availability",
+  "method": "POST",
+  "headers": {
+    "type": "object",
+    "properties": {
+      "Content-Type": { "type": "string", "enum": ["application/json"] }
+    }
+  },
+  "body": {
+    "type": "object",
+    "required": ["sessionId", "venueId", "startTime", "durationMinutes"],
+    "properties": {
+      "sessionId": {
+        "type": "string",
+        "description": "Unique session identifier, e.g. conversation or booking session id"
+      },
+      "venueId": {
+        "type": "string",
+        "description": "ID of the coworking venue to check availability for"
+      },
+      "startTime": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Requested start time in ISO8601 format"
+      },
+      "durationMinutes": {
+        "type": "number",
+        "description": "Duration of booking in minutes"
+      },
+      "attendeeCount": {
+        "type": "number",
+        "description": "Optional number of attendees"
+      },
+      "notes": {
+        "type": "string",
+        "description": "Optional special requirements"
+      }
+    }
+  },
+  "variableExtractionPlan": {
+    "schema": {
+      "type": "object",
+      "required": ["availableSlots"],
+      "properties": {
+        "availableSlots": {
+          "type": "array",
+          "description": "List of available slots returned by backend",
+          "items": {
+            "type": "object",
+            "properties": {
+              "slotId": { "type": "string" },
+              "start": { "type": "string", "format": "date-time" },
+              "end": { "type": "string", "format": "date-time" },
+              "price": { "type": "number" },
+              "room": { "type": "string" }
+            },
+            "required": ["slotId", "start", "end"]
+          }
+        }
+      }
+    },
+    "aliases": [
+      {
+        "key": "slotsCount",
+        "value": "{{ availableSlots | size }}"
+      }
+    ]
+  }
+}
+

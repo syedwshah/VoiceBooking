@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import asyncio
+from collections import deque
 from datetime import date, datetime, time, timedelta, timezone
 import logging
-from typing import Any, Dict
+from decimal import Decimal, InvalidOperation
+from typing import Any, Deque, Dict
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
-from app.models import Booking, Room
+from app.models import Booking, Room, Payment, PaymentStatus
 from app.schemas.booking import (
     AvailabilityRequest,
     AvailabilityResponse,
@@ -18,12 +21,15 @@ from app.schemas.booking import (
     CustomerInfo,
 )
 from app.services.booking_service import BookingPayload, BookingService, CustomerPayload, get_booking_service
+from app.services.payment_service import PaymentService, get_payment_service
 from app.stores.event_bus import event_bus
 from app.stores.session_store import SessionRecord, session_store
-from app.models import Booking
 
 router = APIRouter(prefix="/vapi/tools", tags=["vapi-tools"])
 logger = logging.getLogger(__name__)
+
+
+_mock_payment_events: Deque[dict[str, Any]] = deque(maxlen=50)
 
 
 @router.post("/customer")
@@ -374,6 +380,98 @@ async def confirm_booking(
     }
 
 
+@router.post("/payment/apple-pay")
+async def mock_apple_pay(
+    payload: Dict[str, Any],
+    db: AsyncSession = Depends(get_session),
+    payment_service: PaymentService = Depends(get_payment_service),
+) -> Dict[str, Any]:
+    session_id = payload.get("session_id") or payload.get("sessionId")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+
+    amount_raw = payload.get("amount") or payload.get("payment_amount")
+    currency = (payload.get("currency") or payload.get("payment_currency") or "USD").upper()
+    booking_id = payload.get("booking_id") or payload.get("bookingId")
+
+    amount_decimal: Decimal | None = None
+    if amount_raw is not None:
+        try:
+            amount_decimal = Decimal(str(amount_raw))
+        except (InvalidOperation, ValueError) as exc:
+            raise HTTPException(status_code=400, detail="amount must be numeric") from exc
+
+    transaction_id = payload.get("transaction_id") or f"applepay_demo_{int(datetime.utcnow().timestamp() * 1000)}"
+
+    await asyncio.sleep(float(payload.get("processing_delay", 1.0)))
+
+    booking: Booking | None = None
+    if booking_id is not None:
+        booking = await db.get(Booking, booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="booking not found")
+
+    if booking is not None:
+        await payment_service.record_payment(
+            session=db,
+            booking=booking,
+            amount=amount_decimal,
+            currency=currency,
+            metadata={
+                "transaction_id": transaction_id,
+                "provider": "apple_pay",
+            },
+            status=PaymentStatus.SUCCEEDED,
+        )
+        await db.commit()
+    else:
+        _mock_payment_events.appendleft(
+            {
+                "id": transaction_id,
+                "provider": "apple_pay",
+                "status": PaymentStatus.SUCCEEDED.value,
+                "amount": float(amount_decimal) if amount_decimal is not None else None,
+                "currency": currency,
+                "transaction_id": transaction_id,
+                "created_at": datetime.utcnow().isoformat(),
+            }
+        )
+
+    record = session_store.get(session_id) or SessionRecord(session_id=session_id, call_type="booking")
+    record.booking_status.payment_required = False
+    session_store.upsert(record)
+
+    event_payload = {
+        "type": "payment.succeeded",
+        "provider": "apple_pay",
+        "amount": float(amount_decimal) if amount_decimal is not None else None,
+        "currency": currency,
+        "transaction_id": transaction_id,
+        "booking_id": booking_id,
+    }
+
+    await event_bus.publish(session_id, event_payload)
+    logger.info(
+        "session_event",
+        extra={
+            "session_id": session_id,
+            "event": "payment.succeeded",
+            "amount": event_payload["amount"],
+            "currency": currency,
+            "booking_id": booking_id,
+        },
+    )
+
+    return {
+        "status": "SUCCEEDED",
+        "transaction_id": transaction_id,
+        "provider": "apple_pay",
+        "amount": float(amount_decimal) if amount_decimal is not None else None,
+        "currency": currency,
+        "booking_id": booking_id,
+    }
+
+
 @router.post("/survey")
 async def log_survey(payload: Dict[str, Any]) -> Dict[str, Any]:
     session_id = payload.get("session_id")
@@ -421,3 +519,31 @@ async def list_bookings(db: AsyncSession = Depends(get_session)) -> Dict[str, An
             }
         )
     return {"bookings": bookings}
+
+
+@router.get("/payments")
+async def list_payments(db: AsyncSession = Depends(get_session)) -> Dict[str, Any]:
+    result = await db.execute(select(Payment).order_by(Payment.created_at.desc()))
+    payments: list[dict[str, Any]] = []
+    for payment in result.scalars().unique():
+        extras = payment.extras or {}
+        transaction_id = extras.get("transaction_id") if isinstance(extras, dict) else None
+        provider_hint = extras.get("provider") if isinstance(extras, dict) else None
+        payments.append(
+            {
+                "id": payment.id,
+                "booking_id": payment.booking_id,
+                "provider": payment.provider.value,
+                "status": payment.status.value,
+                "amount": float(payment.amount) if getattr(payment, "amount", None) is not None else None,
+                "currency": payment.currency,
+                "transaction_id": transaction_id,
+                "provider_hint": provider_hint,
+                "created_at": payment.created_at.isoformat() if payment.created_at else None,
+            }
+        )
+
+    mock_payments = list(_mock_payment_events)
+    combined = mock_payments + payments
+
+    return {"payments": combined}

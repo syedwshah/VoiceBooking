@@ -3,13 +3,64 @@
   font-weight: 400;
   font-style: normal;
   font-size: 12px;
-  height: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: 0px 8px;
+  margin: 0;
+  padding: 0;
+
   & > div {
     flex-shrink: 0;
+  }
+
+  .payment-toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(15, 23, 42, 0.96);
+    color: #fff;
+    border-radius: 16px;
+    padding: 12px 18px;
+    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.4);
+    z-index: 10000;
+    animation: toast-in 0.22s ease;
+    pointer-events: none;
+
+    .payment-toast__icon {
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 999px;
+    }
+
+    .payment-toast__title {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+
+    .payment-toast__body {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+  }
+
+  @keyframes toast-in {
+    from {
+      transform: translateY(-12px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 
   .spacer {
@@ -35,17 +86,18 @@
 
   .content-main {
     flex-grow: 1;
-    flex-shrink: 1 !important;
-    margin: 0px 16px;
     display: flex;
+    min-height: 0;
     overflow: hidden;
-    margin-bottom: 24px;
+    margin: 0; /* ✅ Removed bottom margin to allow full-height layout */
+
     .content-block {
       position: relative;
       display: flex;
       flex-direction: column;
       max-height: 100%;
       width: 100%;
+
       .content-block-title {
         flex-shrink: 0;
         padding-top: 16px;
@@ -65,74 +117,146 @@
         }
       }
     }
+
     .content-right {
-      width: 300px;
-      flex-shrink: 0;
+      width: 50%;
       display: flex;
       flex-direction: column;
       margin-left: 24px;
-      gap: 24px;
-      & > div {
-        border-radius: 16px;
-        flex-grow: 1;
-        flex-shrink: 0;
+      height: 100%;
+      min-height: 0;
+
+      & > .floor-plan-card {
+        border-radius: 24px;
+        flex: 1; /* ✅ Full height usage */
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
-        position: relative;
-        .content-block-title {
-          position: absolute;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          line-height: 2em;
-          top: 16px;
-          left: 16px;
-          padding: 4px 16px;
-          background-color: #fff;
-          border-radius: 1000px;
-          min-height: 32px;
-          z-index: 9999;
-          text-align: center;
-          white-space: pre;
-          &.bottom {
-            top: auto;
-            bottom: 16px;
-            right: 16px;
-          }
+        background: linear-gradient(180deg, #eef1ff 0%, #ffffff 40%);
+
+        .content-block-body {
+          flex-grow: 1;
+          padding: 0;
+          min-height: 0;
         }
       }
-      & > div.kv {
-        height: 250px;
-        max-height: 250px;
-        white-space: pre;
-        background-color: #ececf1;
-        .content-block-body {
+
+      .booking-list {
+        margin-top: 16px;
+        margin-bottom: 12px; /* ✅ Add bottom breathing space */
+        background: #fff;
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 12px 32px rgba(24, 24, 27, 0.08);
+
+        h3 {
+          margin-top: 0;
+          margin-bottom: 12px;
+          font-size: 14px;
+          color: #18181b;
+        }
+
+        ul {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          max-height: 220px;
+          overflow: auto;
+        }
+
+        li {
+          display: flex;
+          flex-direction: column;
+          padding: 12px;
+          border-radius: 12px;
+          background: #f6f7ff;
+          font-size: 12px;
+          color: #18181b;
+        }
+
+        .booking-row {
+          font-weight: 600;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .booking-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          font-weight: 400;
+        }
+
+        .booking-customer {
+          font-weight: 600;
+          color: #18181b;
+          min-width: 140px;
+        }
+
+        .booking-room {
+          font-weight: 600;
+        }
+
+        .booking-venue {
+          font-size: 11px;
+          font-weight: 400;
+          color: #6e6e7f;
+        }
+
+        .booking-time {
+          color: #3a3a4c;
+        }
+
+        .booking-empty {
           padding: 16px;
-          margin-top: 56px;
+          border-radius: 12px;
+          background: #f0f1ff;
+          color: #6e6e7f;
+          font-size: 12px;
+          text-align: center;
         }
       }
     }
+
     .content-logs {
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* ✅ Centers vertically */
+  align-items: center; /* ✅ Centers horizontally */
+  flex-grow: 1;
+  padding: 0;
+  margin: 0;
+
       & > div {
         flex-grow: 1;
       }
-      & > .content-actions {
-        flex-grow: 0;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-      }
+
+      & >   .content-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: #f9f9f9;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06); /* optional subtle shadow */
+  }
+
       & > div.events {
         overflow: hidden;
       }
+
       .events {
         border-top: 1px solid #e7e7e7;
       }
+
       .conversation {
         display: flex;
         flex-shrink: 0;
@@ -151,9 +275,11 @@
     display: flex;
     gap: 16px;
     margin-bottom: 16px;
+
     &:not(:hover) .close {
       display: none;
     }
+
     .close {
       position: absolute;
       top: 0px;
@@ -173,6 +299,7 @@
         height: 12px;
       }
     }
+
     .speaker {
       position: relative;
       text-align: left;
@@ -187,6 +314,7 @@
         color: #009900;
       }
     }
+
     .speaker-content {
       color: #18181b;
       overflow: hidden;
@@ -200,6 +328,7 @@
     display: flex;
     padding: 0px;
     gap: 16px;
+
     .event-timestamp {
       text-align: left;
       gap: 8px;
@@ -208,11 +337,13 @@
       flex-shrink: 0;
       margin-right: 16px;
     }
+
     .event-details {
       display: flex;
       flex-direction: column;
       color: #18181b;
       gap: 8px;
+
       .event-summary {
         padding: 4px 8px;
         margin: 0px -8px;
@@ -224,6 +355,7 @@
         display: flex;
         gap: 8px;
         align-items: center;
+
         .event-source {
           flex-shrink: 0;
           display: flex;
@@ -257,6 +389,7 @@
     border-radius: 16px;
     z-index: 10;
     gap: 2px;
+
     .visualization-entry {
       position: relative;
       display: flex;
@@ -264,12 +397,14 @@
       height: 40px;
       width: 100px;
       gap: 4px;
+
       &.client {
         color: #0099ff;
       }
       &.server {
         color: #009900;
       }
+
       canvas {
         width: 100%;
         height: 100%;

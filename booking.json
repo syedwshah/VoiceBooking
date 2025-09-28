@@ -1,0 +1,126 @@
+{
+  "type": "apiRequest",
+  "function": {
+    "name": "create_booking"
+  },
+  "messages": [
+    {
+      "type": "request-start",
+      "blocking": true
+    }
+  ],
+  "name": "create_booking",
+  "url": "https://denumerably-hypermetaphoric-elayne.ngrok-free.dev/api/vapi/tools/booking",
+  "method": "POST",
+  "headers": {
+    "type": "object",
+    "properties": {
+      "Content-Type": {
+        "type": "string",
+        "value": "application/json"
+      }
+    }
+  },
+  "body": {
+    "type": "object",
+    "required": [
+      "session_id",
+      "room_id",
+      "startTime",
+      "durationMinutes",
+      "customer"
+    ],
+    "properties": {
+      "session_id": {
+        "description": "Conversation or booking session ID",
+        "type": "string",
+        "default": "demo-session"
+      },
+      "room_id": {
+        "description": "Room identifier from availability step",
+        "type": "string",
+        "default": "aurora-lounge"
+      },
+      "startTime": {
+        "description": "Start time in ISO8601 format",
+        "type": "string",
+        "default": "2025-09-29T13:00:00Z"
+      },
+      "durationMinutes": {
+        "description": "Duration in minutes",
+        "type": "number",
+        "default": 120
+      },
+      "attendeeCount": {
+        "description": "Number of attendees",
+        "type": "number",
+        "default": 1
+      },
+      "notes": {
+        "description": "Optional special requirements",
+        "type": "string",
+        "default": "Need projector"
+      },
+      "customer": {
+        "description": "Customer information for the booking",
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "phoneNumber"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "default": "Alex Morgan"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "default": "alex@example.com"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "default": "+15555550123"
+          }
+        }
+      },
+      "paymentAmount": {
+        "description": "Booking price",
+        "type": "number",
+        "default": 300
+      },
+      "paymentCurrency": {
+        "description": "Currency code (ISO 4217)",
+        "type": "string",
+        "default": "USD"
+      }
+    }
+  },
+  "variableExtractionPlan": {
+    "schema": {
+      "type": "object",
+      "required": ["booking_id", "status"],
+      "properties": {
+        "booking_id": {
+          "type": "number",
+          "description": "Unique booking ID returned from backend"
+        },
+        "door_code": {
+          "type": "string",
+          "description": "Door access code for guest"
+        },
+        "status": {
+          "type": "string",
+          "description": "Booking status, expected CONFIRMED"
+        }
+      }
+    },
+    "aliases": [
+      {
+        "key": "isBookingConfirmed",
+        "value": "{{ status == 'CONFIRMED' }}"
+      }
+    ]
+  }
+}
