@@ -147,7 +147,9 @@ export function ConsolePage() {
   const processedTransactionsRef = useRef<Set<string>>(new Set());
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const backendBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api').replace(/\/$/, '');
+  const importMeta: unknown = import.meta;
+  const viteEnvBase = (importMeta as { env?: Record<string, string | undefined> })?.env?.VITE_API_BASE_URL;
+  const backendBase = (process.env.REACT_APP_BACKEND_URL || viteEnvBase || 'http://localhost:8000/api').replace(/\/$/, '');
 
   const ensureAudioContext = useCallback(async () => {
     const AudioCtx =

@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     vapi_public_key: str = Field("", alias="VAPI_PUBLIC_KEY")
     vapi_outreach_team_id: Optional[str] = Field(None, alias="VAPI_OUTREACH_TEAM_ID")
     vapi_booking_team_id: Optional[str] = Field(None, alias="VAPI_BOOKING_TEAM_ID")
+    vapi_outreach_assistant_id: Optional[str] = Field(None, alias="VAPI_OUTREACH_ASSISTANT_ID")
+    vapi_booking_assistant_id: Optional[str] = Field(None, alias="VAPI_BOOKING_ASSISTANT_ID")
     openai_api_key: str = Field("", alias="OPENAI_API_KEY")
     openai_realtime_model: str = Field("gpt-4o-realtime-preview", alias="OPENAI_REALTIME_MODEL")
     twilio_account_sid: Optional[str] = Field(None, alias="TWILIO_ACCOUNT_SID")
@@ -40,8 +42,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
-
-@property
-def frontend_origins(self) -> List[str]:
-    return [origin.strip() for origin in str(self.frontend_origin).split(",") if origin.strip()]
