@@ -130,9 +130,12 @@ export function ConsolePage() {
 
   const importMeta: ImportMeta = import.meta;
   const viteEnvBase = importMeta.env?.VITE_API_BASE_URL;
+  const viteFallbackBase = importMeta.env?.REACT_APP_BACKEND_FALLBACK_URL;
   const runtimeOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
   const computedBase = process.env.REACT_APP_BACKEND_URL || viteEnvBase || (runtimeOrigin ? `${runtimeOrigin}/api` : undefined);
+  const computedFallback = process.env.REACT_APP_BACKEND_FALLBACK_URL || viteFallbackBase;
   const backendBase = (computedBase || 'http://localhost:8000/api').replace(/\/$/, '');
+  const backendFallback = computedFallback ? computedFallback.replace(/\/$/, '') : undefined;
 
   const ensureAudioContext = useCallback(async () => {
     const AudioCtx =
@@ -165,16 +168,20 @@ export function ConsolePage() {
       dispatchFloor({ type: 'loading' });
 
       const venuesUrl = `${backendBase}/metadata/venues`;
-      const venuesResponse = await fetch(venuesUrl);
-      if (!venuesResponse.ok) {
-        const text = await venuesResponse.text();
-        throw new Error(`Failed to load venues (${venuesResponse.status}): ${text.slice(0, 200)}`);
+      const venuesResponse = await fetch(venuesUrl, { headers: { Accept: 'application/json' } });
+      let venues: ApiVenue[] | null = null;
+      if (venuesResponse.ok && venuesResponse.headers.get('content-type')?.includes('application/json')) {
+        venues = (await venuesResponse.json()) as ApiVenue[];
+      } else if (backendFallback && backendFallback !== backendBase) {
+        const fallbackResponse = await fetch(`${backendFallback}/metadata/venues`, { headers: { Accept: 'application/json' } });
+        if (fallbackResponse.ok && fallbackResponse.headers.get('content-type')?.includes('application/json')) {
+          venues = (await fallbackResponse.json()) as ApiVenue[];
+        }
       }
-      if (!venuesResponse.headers.get('content-type')?.includes('application/json')) {
-        const text = await venuesResponse.text();
-        throw new Error(`Unexpected venues response: ${text.slice(0, 200)}`);
+      if (!venues) {
+        const snippet = await venuesResponse.text().catch(() => '');
+        throw new Error(`Unable to fetch venues from ${venuesUrl}. ${snippet.slice(0, 200)}`);
       }
-      const venues = (await venuesResponse.json()) as ApiVenue[];
       const allRooms = venues.flatMap((venue) =>
         venue.rooms.map((room) => ({
           ...room,
@@ -186,16 +193,20 @@ export function ConsolePage() {
       const knownRooms = allRooms.filter((room) => SUPPORTED_ROOM_IDS.includes(room.id));
 
       const bookingsUrl = `${backendBase}/vapi/tools/bookings`;
-      const bookingsResponse = await fetch(bookingsUrl);
-      if (!bookingsResponse.ok) {
-        const text = await bookingsResponse.text();
-        throw new Error(`Failed to load bookings (${bookingsResponse.status}): ${text.slice(0, 200)}`);
+      const bookingsResponse = await fetch(bookingsUrl, { headers: { Accept: 'application/json' } });
+      let bookingsPayload: { bookings?: ApiBooking[] } | null = null;
+      if (bookingsResponse.ok && bookingsResponse.headers.get('content-type')?.includes('application/json')) {
+        bookingsPayload = (await bookingsResponse.json()) as { bookings?: ApiBooking[] };
+      } else if (backendFallback && backendFallback !== backendBase) {
+        const fallbackBookings = await fetch(`${backendFallback}/vapi/tools/bookings`, { headers: { Accept: 'application/json' } });
+        if (fallbackBookings.ok && fallbackBookings.headers.get('content-type')?.includes('application/json')) {
+          bookingsPayload = (await fallbackBookings.json()) as { bookings?: ApiBooking[] };
+        }
       }
-      if (!bookingsResponse.headers.get('content-type')?.includes('application/json')) {
-        const text = await bookingsResponse.text();
-        throw new Error(`Unexpected bookings response: ${text.slice(0, 200)}`);
+      if (!bookingsPayload) {
+        const snippet = await bookingsResponse.text().catch(() => '');
+        throw new Error(`Unable to fetch bookings from ${bookingsUrl}. ${snippet.slice(0, 200)}`);
       }
-      const bookingsPayload = (await bookingsResponse.json()) as { bookings?: ApiBooking[] };
       const now = new Date();
 
       const allBookings = bookingsPayload.bookings || [];
@@ -263,7 +274,7 @@ export function ConsolePage() {
       floorDirectoryRef.current = updatedDirectory;
     } catch (error) {
       console.error('Failed to load floor data', error);
-      dispatchFloor({ type: 'error', error: error instanceof Error ? error.message : 'Failed to load floor data' });
+      dispatchFloor({ type: 'error', error: 'Unable to load venue availability. Please refresh once the backend is reachable.' });
     }
   }, [backendBase]);
 
