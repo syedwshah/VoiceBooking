@@ -130,7 +130,9 @@ export function ConsolePage() {
 
   const importMeta: ImportMeta = import.meta;
   const viteEnvBase = importMeta.env?.VITE_API_BASE_URL;
-  const backendBase = (process.env.REACT_APP_BACKEND_URL || viteEnvBase || 'http://localhost:8000/api').replace(/\/$/, '');
+  const runtimeOrigin = typeof window !== 'undefined' ? window.location.origin : undefined;
+  const computedBase = process.env.REACT_APP_BACKEND_URL || viteEnvBase || (runtimeOrigin ? `${runtimeOrigin}/api` : undefined);
+  const backendBase = (computedBase || 'http://localhost:8000/api').replace(/\/$/, '');
 
   const ensureAudioContext = useCallback(async () => {
     const AudioCtx =
@@ -162,9 +164,15 @@ export function ConsolePage() {
     try {
       dispatchFloor({ type: 'loading' });
 
-      const venuesResponse = await fetch(`${backendBase}/metadata/venues`);
+      const venuesUrl = `${backendBase}/metadata/venues`;
+      const venuesResponse = await fetch(venuesUrl);
       if (!venuesResponse.ok) {
-        throw new Error(`Failed to load venues (${venuesResponse.status})`);
+        const text = await venuesResponse.text();
+        throw new Error(`Failed to load venues (${venuesResponse.status}): ${text.slice(0, 200)}`);
+      }
+      if (!venuesResponse.headers.get('content-type')?.includes('application/json')) {
+        const text = await venuesResponse.text();
+        throw new Error(`Unexpected venues response: ${text.slice(0, 200)}`);
       }
       const venues = (await venuesResponse.json()) as ApiVenue[];
       const allRooms = venues.flatMap((venue) =>
@@ -177,9 +185,15 @@ export function ConsolePage() {
 
       const knownRooms = allRooms.filter((room) => SUPPORTED_ROOM_IDS.includes(room.id));
 
-      const bookingsResponse = await fetch(`${backendBase}/vapi/tools/bookings`);
+      const bookingsUrl = `${backendBase}/vapi/tools/bookings`;
+      const bookingsResponse = await fetch(bookingsUrl);
       if (!bookingsResponse.ok) {
-        throw new Error(`Failed to load bookings (${bookingsResponse.status})`);
+        const text = await bookingsResponse.text();
+        throw new Error(`Failed to load bookings (${bookingsResponse.status}): ${text.slice(0, 200)}`);
+      }
+      if (!bookingsResponse.headers.get('content-type')?.includes('application/json')) {
+        const text = await bookingsResponse.text();
+        throw new Error(`Unexpected bookings response: ${text.slice(0, 200)}`);
       }
       const bookingsPayload = (await bookingsResponse.json()) as { bookings?: ApiBooking[] };
       const now = new Date();
